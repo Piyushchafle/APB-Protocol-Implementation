@@ -1,0 +1,122 @@
+module APB_Memory_TB;
+
+  // Signals
+  logic        Pclk;
+  logic        Prst;
+  logic [4:0]  Paddr;
+  logic        Pselx;
+  logic        Penable;
+  logic        Pwrite;
+  logic [31:0] Pwdata;
+  logic        Pready;
+  logic        Pslverr;
+  logic [31:0] Prdata;
+  logic [31:0] temp;
+
+  // DUT instantiation
+  APB_Memory dut (
+    .Pclk   (Pclk),
+    .Prst   (Prst),
+    .Paddr  (Paddr),
+    .Pselx  (Pselx),
+    .Penable(Penable),
+    .Pwrite (Pwrite),
+    .Pwdata (Pwdata),
+    .Pready (Pready),
+    .Pslverr(Pslverr),
+    .Prdata (Prdata),
+    .temp   (temp)
+  );
+
+  // Clock generation
+  initial Pclk = 0;
+  always #10 Pclk = ~Pclk;
+
+  // Waveform dump
+  initial begin
+    $dumpfile("apb_memory_tb.vcd");   // For GTKWave / Icarus
+    $dumpvars(0, APB_Memory_TB);
+  end
+
+  // Reset task
+  task automatic reset_dut();
+    begin
+      Prst    = 0;
+      Pselx   = 0;
+      Penable = 0;
+      Pwrite  = 0;
+      Pwdata  = 0;
+      Paddr   = 0;
+      #25;
+      Prst    = 1;
+    end
+  endtask
+
+  // APB Write task
+  task automatic apb_write(input logic [4:0] addr,
+                           input logic [31:0] data);
+    begin
+      @(posedge Pclk);
+      Pselx   = 1;
+      Pwrite  = 1;
+      Paddr   = addr;
+      Pwdata  = data;
+      Penable = 0;
+
+      @(posedge Pclk);
+      Penable = 1;
+
+      wait (Pready == 1);
+
+      @(posedge Pclk);
+      Pselx   = 0;
+      Penable = 0;
+
+      $display("[%0t] WRITE: Addr=%0d Data=%0h", $time, addr, data);
+    end
+  endtask
+
+  // APB Read task
+  task automatic apb_read(input logic [4:0] addr,
+                          output logic [31:0] data);
+    begin
+      @(posedge Pclk);
+      Pselx   = 1;
+      Pwrite  = 0;
+      Paddr   = addr;
+      Penable = 0;
+
+      @(posedge Pclk);
+      Penable = 1;
+
+      wait (Pready == 1);
+
+      data = Prdata;
+      $display("[%0t] READ : Addr=%0d Data=%0h", $time, addr, data);
+
+      @(posedge Pclk);
+      Pselx   = 0;
+      Penable = 0;
+    end
+  endtask
+
+  // Main test sequence
+  initial begin
+    logic [31:0] rd_data;
+
+    reset_dut();
+
+    apb_write(5'd3,  32'hA5A5A5A5);
+    apb_write(5'd10, 32'h12345678);
+    apb_write(5'd15, 32'hDEADBEEF);
+
+    apb_read(5'd3,  rd_data);
+    apb_read(5'd10, rd_data);
+    apb_read(5'd15, rd_data);
+
+    #50;
+    $display("APB Memory Test Completed.");
+    $finish;
+  end
+
+endmodule
