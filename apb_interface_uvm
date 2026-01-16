@@ -1,0 +1,11 @@
+interface apb_if(input logic Pclk);
+  logic        Prst;
+  logic [4:0]  Paddr;
+  logic        Pselx;
+  logic        Penable;
+  logic        Pwrite;
+  logic [31:0] Pwdata;
+  logic        Pready;
+  logic        Pslverr;
+  logic [31:0] Prdata;
+endinterface
