@@ -1,0 +1,24 @@
+class apb_scoreboard extends uvm_component;
+  `uvm_component_utils(apb_scoreboard)
+
+  uvm_analysis_imp #(apb_seq_item, apb_scoreboard) sb_imp;
+  bit [31:0] model_mem [0:31];
+
+  function new(string name, uvm_component parent);
+    super.new(name, parent);
+    sb_imp = new("sb_imp", this);
+  endfunction
+
+  function void write(apb_seq_item tr);
+    if (tr.write) begin
+      model_mem[tr.addr] = tr.data;
+      `uvm_info("SB", $sformatf("WRITE OK: Addr=%0d Data=%0h", tr.addr, tr.data), UVM_LOW)
+    end else begin
+      if (model_mem[tr.addr] !== tr.data)
+        `uvm_error("SB", $sformatf("READ MISMATCH: Addr=%0d Expected=%0h Got=%0h",
+                                   tr.addr, model_mem[tr.addr], tr.data))
+      else
+        `uvm_info("SB", $sformatf("READ OK: Addr=%0d Data=%0h", tr.addr, tr.data), UVM_LOW)
+    end
+  endfunction
+endclass
