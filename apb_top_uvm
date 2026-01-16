@@ -1,0 +1,37 @@
+module top;
+
+  import uvm_pkg::*;
+  `include "uvm_macros.svh"
+
+  logic Pclk;
+  initial Pclk = 0;
+  always #10 Pclk = ~Pclk;
+
+  apb_if apb_if_inst(Pclk);
+
+  // DUT instantiation
+  APB_Memory dut (
+    .Pclk   (Pclk),
+    .Prst   (apb_if_inst.Prst),
+    .Paddr  (apb_if_inst.Paddr),
+    .Pselx  (apb_if_inst.Pselx),
+    .Penable(apb_if_inst.Penable),
+    .Pwrite (apb_if_inst.Pwrite),
+    .Pwdata (apb_if_inst.Pwdata),
+    .Pready (apb_if_inst.Pready),
+    .Pslverr(apb_if_inst.Pslverr),
+    .Prdata (apb_if_inst.Prdata),
+    .temp   ()
+  );
+
+  initial begin
+    apb_if_inst.Prst = 0;
+    #25 apb_if_inst.Prst = 1;
+  end
+
+  initial begin
+    uvm_config_db #(virtual apb_if)::set(null, "*", "vif", apb_if_inst);
+    run_test("apb_test");
+  end
+
+endmodule
